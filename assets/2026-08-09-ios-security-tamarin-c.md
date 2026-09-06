@@ -64,3 +64,10 @@ Open the pcb-editor and then export the files like this:
 
     ![plugin](/assets/tamarin-c-hw/assem.png)
     *check the pcb assembly box and klick on next*
+
+
+
+
+errors to correct:
+
+c3,c4 r6,r7 have wrong lcsc numbers in the pcb files -> contact thomas 

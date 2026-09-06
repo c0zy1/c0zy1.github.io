@@ -1,43 +1,93 @@
 ---
-title: "OST2-1001: Binary Bomb Phase 1"
-date: 2025-10-16 00:00:00 
+title: "Patch2POC : ImageIO integer overflow"
+date: 2026-09-01 00:00:00 
 categories: [OpenSecurityTraining2]
 tags: [Reverse Engineering]
 ---
 
-This post will cover the first phase of the binary bomb lab originally created by CMU.
 
-I have done it while working through OST2-1001 Assembly on OpenSecurityTraining2.
+## Introduction
 
-At first we start the binary and step to the first relevant function call.
-
-This function reads the first line from the text file we provide and returns a pointer to a memory location which gets passed to phase_1.
-
-![bomb](/assets/ost2/binarybomb/callread.png)
-
-
-After we step into phase_1 we can observe that strings_not_equal is being called with the a pointer to rdi and a pointer to rsi. The pointer to rdi represents our input while the pointer to rdi is a hardcoded string.
-
-We can also see that right after the call to strings_not_equal a test eax, eax instruction will AND the eax register, set the SF, ZF and PF and throw away the numeric result.
-
-This means that our input has to make this function return 0 otherwise test will not set the zero flag and we will jump to phase_1 +29 which will in return call bomb_explode. 
-
-![bomb](/assets/ost2/binarybomb/stringsnotequal.png)
+1. reading the patch
+2. getting the stock firmware
+3. binexport, bindiff, analysis
+4. setting up the vm, enabling ssh, downloading tools, disabling sip(lldb)
+5. 
 
 
-After we step into strings_not_equal we realize that its just a string comparison moving char by char with rax as the incrementing factor.
 
-It moves one byte at the adress in rbx(where our input string is stored) into edx, and then moves the offset into eax which in this first case is 0. 
 
-After that it calculates the adress of the first char at the hardcoded adress which is stored in rbp and compares it to dl which was previously set.
+5. 
+setting up the vm:
 
-In the first example 0x49 (our input "I") gets compared with 0x49 and passes the test to not take the jump
+brew install --cask utm
 
-![bomb](/assets/ost2/binarybomb/stringsnotcode.png)
+use the vulnerable version we downloaded via ipsw to set up the vm
 
-After that we simply continue with the program execution and find ourselves defusing the first phase.
 
-![bomb](/assets/ost2/binarybomb/defused.png)
+enabling ssh:
 
-GGs 
+System Settings → Privacy & Security → Full Disk Access → Terminal 
 
+sudo systemsetup -setremotelogin on
+
+getting some tools:
+
+run the script
+
+
+disabling sip:
+
+sudo csrutil disable
+sudo reboot
+
+6. debugging
+
+building the trigger:
+
+clang -framework Foundation -framework ImageIO \
+      -framework AppKit -framework CoreGraphics \
+      -g -O0 \
+      -o trigger trigger.m
+
+loading the binary:
+
+pwndbg-lldb ./trigger
+command source imageio.lldb
+run test.psd
+
+
+
+breakpoint setting mini tutorial:
+
+ghidra:
+
+1. window-> memory map -> base 
+2. look at the adress of your function
+
+in lldb:
+
+1. image list -o -f ImageIO -> offset
+2. ghidra addr+ offset
+3. image lookup -a 0x19d26e600 -> should return the function or exact offset into a function you are looking for
+4. breakpoint set -a 0x19d26e600
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+sources:
+
+https://www.virusbulletin.com/uploads/pdf/conference/vb2022/papers/VB2022-Exploit-archaeology-a-forensic-history-of-in-the-wild-NSO-Group-exploits.pdf
